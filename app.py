@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import pickle
 import pandas as pd
@@ -9,107 +10,35 @@ st.set_page_config(page_title="Fraud Sentry Dashboard", layout="wide")
 
 st.markdown("""
     <style>
-    /* Main Background: Soft Premium Cream/Off-White */
-    .stApp { 
-        background-color: #fcfaf7; 
-        color: #2b1111; 
-    }
-    
-    /* Main Professional Heading (Deep Wine) */
-    .main-title { 
-        color: #4a0f0f; 
-        font-family: 'Inter', sans-serif; 
-        font-size: 36px; 
-        text-align: center; 
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        margin-bottom: 2px;
-    }
-    
-    /* Subheading: Developed by Aein */
-    .sub-title {
-        color: #8c6e6e;
-        font-family: 'Inter', sans-serif;
-        font-size: 14px;
-        text-align: center;
-        font-weight: 400;
-        letter-spacing: 0.5px;
-        margin-top: 0px;
-        margin-bottom: 20px;
-    }
-    
-    /* Section Headings */
-    h3 { 
-        color: #4a0f0f !important; 
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 20px;
-        margin-bottom: 15px;
-    }
-    
-    /* Form Inputs with Soft Edges */
-    .stNumberInput input, .stSelectbox div, .stSlider div {
-        background-color: #ffffff !important;
-        color: #2b1111 !important;
-        border: 1px solid rgba(74, 15, 15, 0.15) !important;
-        border-radius: 6px !important;
-    }
-    
-    /* Professional Soft Action Button */
-    .stButton>button {
-        background: #4a0f0f;
-        color: #ffffff !important;
-        border: none;
-        border-radius: 6px; 
-        width: 100%; 
-        height: 45px; 
-        font-size: 16px; 
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover { 
-        background: #6b1d1d;
-        color: #ffffff !important;
-    }
-    
-    /* Executive Status Boxes (No Emojis) */
-    .result-box-safe { 
-        background-color: rgba(40, 167, 69, 0.08); 
-        border: 1px solid #28a745; 
-        padding: 20px; 
-        border-radius: 8px; 
-        text-align: center; 
-    }
-    .result-box-fraud { 
-        background-color: rgba(220, 53, 69, 0.08); 
-        border: 1px solid #dc3545; 
-        padding: 20px; 
-        border-radius: 8px; 
-        text-align: center; 
-    }
+    .stApp { background-color: #fcfaf7; color: #2b1111; }
+    .main-title { color: #4a0f0f; font-family: 'Inter', sans-serif; font-size: 36px; text-align: center; font-weight: 700; margin-bottom: 2px; }
+    .sub-title { color: #8c6e6e; font-family: 'Inter', sans-serif; font-size: 14px; text-align: center; margin-top: 0px; margin-bottom: 20px; }
+    h3 { color: #4a0f0f !important; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 20px; margin-bottom: 15px; }
+    .stNumberInput input, .stSelectbox div, .stSlider div { background-color: #ffffff !important; color: #2b1111 !important; border: 1px solid rgba(74, 15, 15, 0.15) !important; border-radius: 6px !important; }
+    .stButton>button { background: #4a0f0f; color: #ffffff !important; border: none; border-radius: 6px; width: 100%; height: 45px; font-size: 16px; font-weight: 500; }
+    .stButton>button:hover { background: #6b1d1d; }
+    .result-box-safe { background-color: rgba(40, 167, 69, 0.08); border: 1px solid #28a745; padding: 20px; border-radius: 8px; text-align: center; }
+    .result-box-fraud { background-color: rgba(220, 53, 69, 0.08); border: 1px solid #dc3545; padding: 20px; border-radius: 8px; text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
-# Headings Layout
 st.markdown("<div class='main-title'>FRAUD SENTRY: FINANCIAL RISK DASHBOARD</div>", unsafe_allow_html=True)
 st.markdown("<div class='sub-title'>Developed by Aein</div>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 0; border-top: 1px solid rgba(74, 15, 15, 0.1); margin-bottom: 30px;'>", unsafe_allow_html=True)
 
-# 2. Asset Loader
+# 2. Single Asset Loader (Unified Pipeline)
 @st.cache_resource
-def load_assets():
-    with open('knn_model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    with open('scaler.pkl', 'rb') as f:
-        scaler = pickle.load(f)
-    return model, scaler
+def load_pipeline():
+    with open('matrix_model.pkl', 'rb') as f:
+        pipeline = pickle.load(f)
+    return pipeline
 
 try:
-    model, scaler = load_assets()
+    model_pipeline = load_pipeline()
 except Exception as e:
-    st.error("Assets Error: Verify that 'knn_model.pkl' and 'scaler.pkl' are present in the directory.")
+    st.error("Model Loading Error: Ensure 'matrix_model.pkl' is uploaded to GitHub.")
 
-# 3. Two-Column Layout
+# 3. Layout Configuration
 col1, col2 = st.columns([1.2, 1])
 
 with col1:
@@ -120,7 +49,7 @@ with col1:
     avg_amount_user = st.number_input("User Average Historical Amount ($)", min_value=0.0, value=120.0)
     total_transactions_user = st.number_input("Total Historical Transactions", min_value=0, value=25)
     transaction_hour = st.slider("Hour of Transaction (0-23)", 0, 23, 14)
-    avs_match = st.selectbox("AVS Match Status (Address Verified)", [1, 0])
+    avs_match = st.selectbox("AVS Match Status", [1, 0])
     cvv_result = st.selectbox("CVV Verification Result", [1, 0])
     three_ds_flag = st.selectbox("3D Secure Dynamic Flag", [1, 0])
     promo_used = st.selectbox("Promo Code Applied", [0, 1])
@@ -143,9 +72,9 @@ with col1:
 with col2:
     st.markdown("### Operational Integrity Report")
     if predict_btn:
-        scaled_input = scaler.transform([input_data])
-        prediction = model.predict(scaled_input)[0]
-        prediction_proba = model.predict_proba(scaled_input)[0]
+        # Pipeline automatic scale bhi karega aur predict bhi karega!
+        prediction = model_pipeline.predict([input_data])[0]
+        prediction_proba = model_pipeline.predict_proba([input_data])[0]
         
         if prediction == 1:
             st.markdown(f"""
@@ -168,9 +97,6 @@ with col2:
         
     st.write("")
     st.markdown("### Core Decision Metrics")
-    st.caption("This visualization breaks down the internal metric weights calculated for the model's structural features:")
-    
-    # Matplotlib Error Fix & Theme Sync
     fig, ax = plt.subplots(figsize=(6, 3.8))
     fig.patch.set_facecolor('#fcfaf7')
     ax.set_facecolor('#ffffff')
@@ -178,7 +104,6 @@ with col2:
     features = ['Transaction Hour', 'Shipping Distance', 'Avg Amount', 'Account Age', 'Amount']
     importance = [0.008, 0.024, 0.026, 0.029, 0.033]
     
-    # Soft Wine/Burgundy Bars
     ax.barh(features, importance, color='#4a0f0f', edgecolor='#4a0f0f', linewidth=0.5, height=0.5)
     ax.set_title("Top Operational Drivers Behind Risk Assessment", color='#4a0f0f', fontsize=10, weight='medium')
     ax.tick_params(colors='#4a0f0f', labelsize=8)
